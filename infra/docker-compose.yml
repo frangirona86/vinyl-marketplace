@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: vinyl_app
+    working_dir: /var/www/html
+    volumes:
+      - ../backend:/var/www/html
+    depends_on:
+      - postgres
+      - redis
+
+  nginx:
+    image: nginx:stable
+    container_name: vinyl_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ../backend:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  postgres:
+    image: postgres:16
+    container_name: vinyl_postgres
+    environment:
+      POSTGRES_DB: vinyl_db
+      POSTGRES_USER: vinyl_user
+      POSTGRES_PASSWORD: vinyl_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: vinyl_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
