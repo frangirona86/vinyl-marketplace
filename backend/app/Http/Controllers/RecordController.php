@@ -22,7 +22,7 @@ class RecordController extends Controller
 
     public function show(Record $record): RecordResource
     {
-        $record = Record::with(['artist', 'variants' => function ($q) {
+        $record->load(['artist', 'variants' => function ($q) {
             $q->where('stock', '>', 0);
         }]);
 
@@ -31,29 +31,22 @@ class RecordController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     *
-     * @param StoreRecordRequest $request
-     * @return JsonResponse
      */
-    public function store(StoreRecordRequest $request): JsonResponse
+    public function store(StoreRecordRequest $request)
     {
-        // Validate the request with the StoreRecordRequest
         $record = Record::create($request->validated());
         $record->load('artist');
 
-        return new RecordResource($record);
+        return (new RecordResource($record))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
      * Update the specified resource in storage.
-     *
-     * @param UpdateRecordRequest $request
-     * @param object Record $record
-     * @return JsonResponse
      */
-    public function update(UpdateRecordRequest $request, Record $record): JsonResponse
+    public function update(UpdateRecordRequest $request, Record $record): RecordResource
     {
-        // Validate the request with the UpdateRecordRequest
         $record->update($request->validated());
         $record->load('artist');
 
@@ -62,11 +55,8 @@ class RecordController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     *
-     * @param object Record $record
-     * @return JsonResponse
      */
-    public function destroy(Record $record): JsonResponse
+    public function destroy(Record $record)
     {
         $record->delete();
 

@@ -1,0 +1,316 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\DiscogsAnalysis;
+use App\Services\DiscogsService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class DiscogsController extends Controller
+{
+    protected DiscogsService $discogs;
+
+    public function __construct(DiscogsService $discogs)
+    {
+        $this->discogs = $discogs;
+    }
+
+    /**
+     * Search for releases
+     * GET /api/discogs/search?q=Abbey+Road
+     */
+    public function searchReleases(Request $request): JsonResponse
+    {
+        $request->validate([
+            "q" => "required|string|min:2",
+            "per_page" => "nullable|integer|min:1|max:50",
+            "page" => "nullable|integer|min:1",
+        ]);
+
+        $results = $this->discogs->searchReleases(
+            $request->input("q"),
+            $request->input("per_page", 10),
+            $request->input("page", 1)
+        );
+
+        if (!$results) {
+            return response()->json(["message" => "No results found", "results" => []], 200);
+        }
+
+        return response()->json($results);
+    }
+
+    /**
+     * Search releases with market data (have/want/price)
+     * GET /api/discogs/search-market?q=Abbey+Road
+     */
+    public function searchWithMarket(Request $request): JsonResponse
+    {
+        $request->validate([
+            "q" => "required|string|min:2",
+            "per_page" => "nullable|integer|min:1|max:10",
+            "page" => "nullable|integer|min:1",
+        ]);
+
+        $results = $this->discogs->searchWithMarketData(
+            $request->input("q"),
+            $request->input("per_page", 5),
+            $request->input("page", 1)
+        );
+
+        if (!$results) {
+            return response()->json(["message" => "No results found", "results" => []], 200);
+        }
+
+        return response()->json($results);
+    }
+
+    /**
+     * Search for artists
+     * GET /api/discogs/artists-search?q=Beatles
+     */
+    public function searchArtists(Request $request): JsonResponse
+    {
+        $request->validate([
+            "q" => "required|string|min:2",
+        ]);
+
+        $results = $this->discogs->searchArtists($request->input("q"));
+
+        return response()->json(["results" => $results ?? []]);
+    }
+
+    /**
+     * Get release details
+     * GET /api/discogs/releases/{id}
+     */
+    public function getRelease(int $id): JsonResponse
+    {
+        $release = $this->discogs->getRelease($id);
+
+        if (!$release) {
+            return response()->json(["message" => "Release not found"], 404);
+        }
+
+        return response()->json(["data" => $release]);
+    }
+
+    /**
+     * Get artist details
+     * GET /api/discogs/artists/{id}
+     */
+    public function getArtist(int $id): JsonResponse
+    {
+        $artist = $this->discogs->getArtist($id);
+
+        if (!$artist) {
+            return response()->json(["message" => "Artist not found"], 404);
+        }
+
+        return response()->json(["data" => $artist]);
+    }
+
+    /**
+     * Get price suggestions
+     * GET /api/discogs/releases/{id}/prices
+     */
+    public function getPrices(int $id): JsonResponse
+    {
+        $prices = $this->discogs->getPriceSuggestions($id);
+
+        if (!$prices) {
+            return response()->json(["message" => "Price data not available"], 404);
+        }
+
+        return response()->json(["data" => $prices]);
+    }
+
+    /**
+     * Get marketplace stats
+     * GET /api/discogs/releases/{id}/stats
+     */
+    public function getStats(int $id): JsonResponse
+    {
+        $stats = $this->discogs->getMarketplaceStats($id);
+
+        if (!$stats) {
+            return response()->json(["message" => "Stats not available"], 404);
+        }
+
+        return response()->json(["data" => $stats]);
+    }
+
+    /**
+     * Get marketplace listings
+     * GET /api/discogs/releases/{id}/listings
+     */
+    public function getListings(Request $request, int $id): JsonResponse
+    {
+        $listings = $this->discogs->getMarketplaceListings(
+            $id,
+            $request->input("per_page", 25),
+            $request->input("page", 1)
+        );
+
+        if (!$listings) {
+            return response()->json(["message" => "Listings not available", "listings" => []], 200);
+        }
+
+        return response()->json($listings);
+    }
+
+    /**
+     * Get COMPLETE analysis (all data combined)
+     * GET /api/discogs/releases/{id}/analysis
+     */
+    public function getAnalysis(int $id): JsonResponse
+    {
+        $analysis = $this->discogs->getCompleteAnalysis($id);
+
+        if (!$analysis) {
+            return response()->json(["message" => "Analysis not available"], 404);
+        }
+
+        return response()->json(["data" => $analysis]);
+    }
+
+    /**
+     * Save release to watchlist/analysis DB
+     * POST /api/discogs/releases/{id}/save
+     */
+    public function saveToAnalysis(Request $request, int $id): JsonResponse
+    {
+        $analysis = $this->discogs->getCompleteAnalysis($id);
+
+        if (!$analysis) {
+            return response()->json(["message" => "Could not fetch release data"], 404);
+        }
+
+        $release = $analysis["release"];
+        $community = $analysis["community"];
+        $marketplace = $analysis["marketplace"];
+
+        // Save or update in database
+        $saved = DiscogsAnalysis::updateOrCreate(
+            ["discogs_id" => $id],
+            [
+                "title" => $release["title"],
+                "artist_name" => $release["artist_name"],
+                "year" => $release["year"],
+                "country" => $release["country"],
+                "label" => $release["label"],
+                "catalog_number" => $release["catalog_number"],
+                "genres" => $release["genres"],
+                "format" => $release["formats"][0]["name"] ?? null,
+                "have" => $community["have"] ?? 0,
+                "want" => $community["want"] ?? 0,
+                "rating_average" => $community["rating_average"] ?? 0,
+                "rating_count" => $community["rating_count"] ?? 0,
+                "num_for_sale" => $marketplace["total_listings"] ?? 0,
+                "lowest_price" => $marketplace["stats"]["lowest_price"]["value"] ?? null,
+                "lowest_price_currency" => $marketplace["stats"]["lowest_price"]["currency"] ?? null,
+                "price_suggestions" => $marketplace["price_suggestions"],
+                "demand_ratio" => $analysis["analysis"]["demand_ratio"],
+                "is_rare" => $analysis["analysis"]["is_rare"],
+                "is_in_demand" => $analysis["analysis"]["is_in_demand"],
+                "raw_data" => $analysis,
+                "cover_image" => $release["images"][0]["uri"] ?? null,
+                "is_watchlist" => $request->input("watchlist", false),
+                "notes" => $request->input("notes"),
+                "fetched_at" => now(),
+            ]
+        );
+
+        return response()->json([
+            "message" => "Release saved to analysis database",
+            "data" => $saved,
+        ], 201);
+    }
+
+    /**
+     * Get all saved analyses
+     * GET /api/discogs/saved
+     */
+    public function getSaved(Request $request): JsonResponse
+    {
+        $query = DiscogsAnalysis::query();
+
+        // Filters
+        if ($request->has("watchlist")) {
+            $query->where("is_watchlist", $request->boolean("watchlist"));
+        }
+
+        if ($request->has("rare")) {
+            $query->where("is_rare", $request->boolean("rare"));
+        }
+
+        if ($request->has("in_demand")) {
+            $query->where("is_in_demand", $request->boolean("in_demand"));
+        }
+
+        if ($request->has("artist")) {
+            $query->byArtist($request->input("artist"));
+        }
+
+        if ($request->has("min_demand")) {
+            $query->withHighDemand($request->input("min_demand"));
+        }
+
+        if ($request->has("max_price")) {
+            $query->underPrice($request->input("max_price"));
+        }
+
+        // Sorting
+        $sortBy = $request->input("sort", "demand_ratio");
+        $sortDir = $request->input("dir", "desc");
+        $query->orderBy($sortBy, $sortDir);
+
+        return response()->json([
+            "data" => $query->paginate($request->input("per_page", 20)),
+        ]);
+    }
+
+    /**
+     * Get analysis stats/summary
+     * GET /api/discogs/saved/stats
+     */
+    public function getSavedStats(): JsonResponse
+    {
+        $stats = [
+            "total" => DiscogsAnalysis::count(),
+            "watchlist" => DiscogsAnalysis::watchlist()->count(),
+            "rare" => DiscogsAnalysis::rare()->count(),
+            "in_demand" => DiscogsAnalysis::inDemand()->count(),
+            "avg_demand_ratio" => DiscogsAnalysis::avg("demand_ratio"),
+            "avg_price" => DiscogsAnalysis::whereNotNull("lowest_price")->avg("lowest_price"),
+            "by_genre" => DiscogsAnalysis::selectRaw("JSON_EXTRACT(genres, \"$[0]\") as genre, COUNT(*) as count")
+                ->groupBy("genre")
+                ->orderByDesc("count")
+                ->limit(10)
+                ->get(),
+            "top_demand" => DiscogsAnalysis::orderByDesc("demand_ratio")
+                ->limit(5)
+                ->get(["discogs_id", "title", "artist_name", "demand_ratio", "have", "want"]),
+        ];
+
+        return response()->json(["data" => $stats]);
+    }
+
+    /**
+     * Remove from analysis DB
+     * DELETE /api/discogs/saved/{id}
+     */
+    public function removeSaved(int $id): JsonResponse
+    {
+        $analysis = DiscogsAnalysis::where("discogs_id", $id)->first();
+
+        if (!$analysis) {
+            return response()->json(["message" => "Not found in saved analyses"], 404);
+        }
+
+        $analysis->delete();
+
+        return response()->json(["message" => "Removed from analysis database"]);
+    }
+}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Artist;
+use App\Http\Resources\ArtistResource;
 use Illuminate\Http\Request;
 
 class ArtistController extends Controller
@@ -12,7 +13,9 @@ class ArtistController extends Controller
      */
     public function index()
     {
-        //
+        $artists = Artist::with('user')->paginate(20);
+
+        return ArtistResource::collection($artists);
     }
 
     /**
@@ -20,7 +23,18 @@ class ArtistController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'display_name' => 'required|string|max:255',
+            'bio' => 'nullable|string',
+            'avatar_url' => 'nullable|url',
+        ]);
+
+        $artist = Artist::create($validated);
+
+        return (new ArtistResource($artist))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -28,7 +42,9 @@ class ArtistController extends Controller
      */
     public function show(Artist $artist)
     {
-        //
+        $artist->load('user');
+
+        return new ArtistResource($artist);
     }
 
     /**
@@ -36,7 +52,15 @@ class ArtistController extends Controller
      */
     public function update(Request $request, Artist $artist)
     {
-        //
+        $validated = $request->validate([
+            'display_name' => 'sometimes|string|max:255',
+            'bio' => 'nullable|string',
+            'avatar_url' => 'nullable|url',
+        ]);
+
+        $artist->update($validated);
+
+        return new ArtistResource($artist);
     }
 
     /**
@@ -44,6 +68,10 @@ class ArtistController extends Controller
      */
     public function destroy(Artist $artist)
     {
-        //
+        $artist->delete();
+
+        return response()->json([
+            'message' => 'Artist deleted successfully'
+        ], 200);
     }
 }

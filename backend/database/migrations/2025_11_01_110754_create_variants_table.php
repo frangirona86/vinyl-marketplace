@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('color')->nullable();
             $table->float('price',10,2);
             $table->integer('stock')->default(1);
-            $table->jsonb('photos')->nullable();
+            $table->json('photos')->nullable();
             $table->timestamps();
         });
     }
