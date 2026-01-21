@@ -6,6 +6,7 @@ use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\VariantController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DiscogsController;
+use App\Http\Controllers\VinylScorerController;
 
 // Records API
 Route::apiResource("records", RecordController::class);
@@ -43,4 +44,16 @@ Route::prefix("discogs")->group(function () {
     Route::get("/saved", [DiscogsController::class, "getSaved"]);
     Route::get("/saved/stats", [DiscogsController::class, "getSavedStats"]);
     Route::delete("/saved/{id}", [DiscogsController::class, "removeSaved"]);
+});
+
+// Vinyl Scorer AI Agent
+Route::prefix("vinyl-scorer")->group(function () {
+    // AI-powered analysis (requires OpenAI key)
+    Route::post("/analyze", [VinylScorerController::class, "analyze"]);
+    
+    // Quick algorithmic score (no AI needed)
+    Route::get("/quick/{discogs_id}", [VinylScorerController::class, "quickScore"]);
+    
+    // Batch scoring for multiple releases
+    Route::post("/batch", [VinylScorerController::class, "batchScore"]);
 });
