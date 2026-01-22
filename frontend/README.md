@@ -1,155 +1,155 @@
 # Vinyl Marketplace - Frontend
 
-Frontend de la aplicación Vinyl Marketplace, construido con Vue.js 3 y Tailwind CSS v4.
+Frontend application for Vinyl Marketplace, built with Vue.js 3 and Tailwind CSS v4.
 
-## Tecnologías
+## Technologies
 
-- **Vue.js 3** - Framework progresivo de JavaScript
-- **Vite** - Build tool de nueva generación
-- **Tailwind CSS v4** - Framework de utilidades CSS
-- **Vue Router 4** - Enrutamiento oficial para Vue.js
-- **Axios** - Cliente HTTP
-- **Vitest** - Framework de testing
+- **Vue.js 3** - Progressive JavaScript Framework
+- **Vite** - Next Generation Build Tool
+- **Tailwind CSS v4** - Utility-First CSS Framework
+- **Vue Router 4** - Official Router for Vue.js
+- **Axios** - HTTP Client
+- **Vitest** - Testing Framework
 
-## Requisitos
+## Requirements
 
 - Node.js 18+
 - npm 9+
 
-## Instalación
+## Installation
 
 ```bash
-# Instalar dependencias
+# Install dependencies
 npm install
 
-# Ejecutar en desarrollo
+# Run development server
 npm run dev
 
-# Build para producción
+# Build for production
 npm run build
 
-# Preview de producción
+# Preview production build
 npm run preview
 ```
 
-## Scripts disponibles
+## Available Scripts
 
-| Script | Descripción |
+| Script | Description |
 |--------|-------------|
-| `npm run dev` | Servidor de desarrollo en http://localhost:5173 |
-| `npm run build` | Build de producción |
-| `npm run preview` | Preview del build de producción |
-| `npm test` | Ejecutar tests en modo watch |
-| `npm run test:run` | Ejecutar tests una vez |
-| `npm run test:coverage` | Tests con reporte de cobertura |
+| `npm run dev` | Development server at http://localhost:5173 |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+| `npm test` | Run tests in watch mode |
+| `npm run test:run` | Run tests once |
+| `npm run test:coverage` | Run tests with coverage report |
 
-## Estructura del proyecto
+## Project Structure
 
 ```
 frontend/
 ├── public/
-│   └── placeholder-vinyl.svg    # Placeholder para imágenes
+│   └── placeholder-vinyl.svg    # Image placeholder
 ├── src/
 │   ├── api/
-│   │   └── discogs.js           # Servicio API para backend
+│   │   └── discogs.js           # API service for backend
 │   ├── components/
 │   │   ├── layout/
-│   │   │   └── AppHeader.vue    # Header de la aplicación
+│   │   │   └── AppHeader.vue    # Application header
 │   │   └── ui/
-│   │       ├── EmptyState.vue       # Estado vacío
-│   │       ├── FiltersPanel.vue     # Panel de filtros
-│   │       ├── LoadingSpinner.vue   # Spinner de carga
-│   │       ├── Pagination.vue       # Paginación
-│   │       ├── SearchBar.vue        # Barra de búsqueda
-│   │       ├── ThemeToggle.vue      # Toggle dark/light mode
-│   │       ├── VinylCard.vue        # Tarjeta de vinyl (grid)
+│   │       ├── EmptyState.vue       # Empty state component
+│   │       ├── FiltersPanel.vue     # Filters panel
+│   │       ├── LoadingSpinner.vue   # Loading spinner
+│   │       ├── Pagination.vue       # Pagination component
+│   │       ├── SearchBar.vue        # Search bar
+│   │       ├── ThemeToggle.vue      # Dark/light mode toggle
+│   │       ├── VinylCard.vue        # Vinyl card (grid view)
 │   │       ├── VinylCardSkeleton.vue # Skeleton loading
-│   │       └── VinylListItem.vue    # Item de vinyl (lista)
+│   │       └── VinylListItem.vue    # Vinyl item (list view)
 │   ├── composables/
-│   │   ├── useTheme.js          # Gestión de tema (dark/light)
-│   │   └── useVinyls.js         # Gestión de vinyls y filtros
+│   │   ├── useTheme.js          # Theme management (dark/light)
+│   │   └── useVinyls.js         # Vinyls and filters management
 │   ├── router/
-│   │   └── index.js             # Configuración de rutas
+│   │   └── index.js             # Routes configuration
 │   ├── views/
-│   │   ├── SearchResults.vue    # Resultados de búsqueda
-│   │   ├── VinylDetail.vue      # Detalle de vinyl
-│   │   └── VinylListing.vue     # Listado principal
-│   ├── App.vue                  # Componente raíz
-│   ├── main.js                  # Punto de entrada
-│   └── style.css                # Estilos globales y tema
+│   │   ├── SearchResults.vue    # Search results page
+│   │   ├── VinylDetail.vue      # Vinyl detail page
+│   │   └── VinylListing.vue     # Main listing page
+│   ├── App.vue                  # Root component
+│   ├── main.js                  # Entry point
+│   └── style.css                # Global styles and theme
 ├── tests/
-│   ├── components/              # Tests de componentes
-│   ├── composables/             # Tests de composables
-│   └── setup.js                 # Configuración de tests
+│   ├── components/              # Component tests
+│   ├── composables/             # Composable tests
+│   └── setup.js                 # Test configuration
 ├── index.html
 ├── package.json
 ├── vite.config.js
 └── vitest.config.js
 ```
 
-## Características
+## Features
 
-### Vista de Listado (estilo PriceRunner)
-- Grid y lista de vinyls
-- Filtros laterales (género, estilo, país, precio, demanda)
-- Ordenación por múltiples campos
-- Paginación completa
-- Estados de carga con skeletons
+### Listing View (PriceRunner style)
+- Grid and list view modes
+- Sidebar filters (genre, style, country, price, demand)
+- Multi-field sorting
+- Full pagination
+- Skeleton loading states
 
-### Tarjetas de Vinyl
-- Imagen del disco con fallback
-- Información del artista y título
-- Géneros y año
-- Estadísticas have/want
-- Ratio de demanda con colores
-- Precio más bajo
-- Score de AI y recomendación
-- Badge de rareza
+### Vinyl Cards
+- Album cover with fallback
+- Artist and title information
+- Genres and year
+- Have/want statistics
+- Color-coded demand ratio
+- Lowest price
+- AI score and recommendation
+- Rarity badge
 
-### Sistema de Temas
-- Dark mode (por defecto)
+### Theme System
+- Dark mode (default)
 - Light mode
-- Persistencia en localStorage
-- Detección automática de preferencia del sistema
-- Transiciones suaves
+- localStorage persistence
+- Automatic system preference detection
+- Smooth transitions
 
-### Diseño Responsive
-- Mobile-first
+### Responsive Design
+- Mobile-first approach
 - Breakpoints: sm, md, lg, xl
-- Menú de filtros colapsable en móvil
+- Collapsible filter menu on mobile
 
-## Paleta de colores
+## Color Palette
 
 ### Dark Mode
-| Color | Hex | Uso |
-|-------|-----|-----|
-| Primary | `#0F0F0F` | Fondo principal |
-| Secondary | `#1E1E1E` | Fondo de tarjetas |
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Primary | `#0F0F0F` | Main background |
+| Secondary | `#1E1E1E` | Card backgrounds |
 | Surface | `#252525` | Inputs, badges |
-| Text | `#F5F5F5` | Texto principal |
-| Text Muted | `#A0A0A0` | Texto secundario |
-| Coral | `#FF4655` | Acciones, alertas |
-| Lilac | `#9A77FF` | Acentos, hovers |
+| Text | `#F5F5F5` | Primary text |
+| Text Muted | `#A0A0A0` | Secondary text |
+| Coral | `#FF4655` | Actions, alerts |
+| Lilac | `#9A77FF` | Accents, hovers |
 
 ### Light Mode
-| Color | Hex | Uso |
-|-------|-----|-----|
-| Primary | `#FFFFFF` | Fondo principal |
-| Secondary | `#F8F9FA` | Fondo de tarjetas |
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Primary | `#FFFFFF` | Main background |
+| Secondary | `#F8F9FA` | Card backgrounds |
 | Surface | `#F1F3F4` | Inputs, badges |
-| Text | `#1A1A1A` | Texto principal |
-| Text Muted | `#5F6368` | Texto secundario |
-| Coral | `#E53935` | Acciones, alertas |
-| Lilac | `#7C4DFF` | Acentos, hovers |
+| Text | `#1A1A1A` | Primary text |
+| Text Muted | `#5F6368` | Secondary text |
+| Coral | `#E53935` | Actions, alerts |
+| Lilac | `#7C4DFF` | Accents, hovers |
 
-## Tipografías
+## Typography
 
-- **Titulares**: Unica One (geometric sans-serif)
-- **Texto general**: Inter (alta legibilidad)
+- **Headings**: Unica One (geometric sans-serif)
+- **Body text**: Inter (high readability)
 
 ## API
 
-El frontend se conecta al backend Laravel a través de un proxy en desarrollo:
+The frontend connects to the Laravel backend through a development proxy:
 
 ```javascript
 // vite.config.js
@@ -163,46 +163,46 @@ server: {
 }
 ```
 
-### Endpoints utilizados
+### API Endpoints
 
-| Endpoint | Descripción |
+| Endpoint | Description |
 |----------|-------------|
-| `GET /api/discogs/saved` | Listar vinyls guardados |
-| `GET /api/discogs/filters` | Obtener filtros disponibles |
-| `GET /api/discogs/search-smart` | Búsqueda con insights |
-| `GET /api/discogs/releases/:id/analysis` | Análisis de un vinyl |
-| `POST /api/discogs/releases/:id/save` | Guardar vinyl |
-| `DELETE /api/discogs/saved/:id` | Eliminar vinyl guardado |
+| `GET /api/discogs/saved` | List saved vinyls |
+| `GET /api/discogs/filters` | Get available filters |
+| `GET /api/discogs/search-smart` | Search with insights |
+| `GET /api/discogs/releases/:id/analysis` | Get vinyl analysis |
+| `POST /api/discogs/releases/:id/save` | Save vinyl |
+| `DELETE /api/discogs/saved/:id` | Delete saved vinyl |
 
 ## Testing
 
 ```bash
-# Tests en modo watch
+# Run tests in watch mode
 npm test
 
-# Tests una vez
+# Run tests once
 npm run test:run
 
-# Con coverage
+# Run with coverage
 npm run test:coverage
 ```
 
-### Tests incluidos (63 tests)
+### Test Coverage (63 tests)
 
-- **VinylCard** (15 tests): Renderizado, badges, colores, eventos
-- **Pagination** (14 tests): Navegación, estados disabled
-- **EmptyState** (9 tests): Props, slots, eventos
-- **ThemeToggle** (7 tests): Iconos, toggle
-- **useTheme** (8 tests): Persistencia, toggle
-- **useVinyls** (10 tests): Filtros, fetch, errores
+- **VinylCard** (15 tests): Rendering, badges, colors, events
+- **Pagination** (14 tests): Navigation, disabled states
+- **EmptyState** (9 tests): Props, slots, events
+- **ThemeToggle** (7 tests): Icons, toggle functionality
+- **useTheme** (8 tests): Persistence, toggle
+- **useVinyls** (10 tests): Filters, fetch, error handling
 
-## Desarrollo
+## Development
 
-### Requisitos
-1. Backend Laravel corriendo en `http://localhost:8000`
-2. Base de datos configurada
+### Prerequisites
+1. Laravel backend running at `http://localhost:8000`
+2. Database configured
 
-### Iniciar desarrollo
+### Start Development
 ```bash
 # Terminal 1 - Backend
 cd ../backend
@@ -212,6 +212,6 @@ php artisan serve
 npm run dev
 ```
 
-## Licencia
+## License
 
 MIT

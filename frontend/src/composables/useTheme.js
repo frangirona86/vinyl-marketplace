@@ -2,18 +2,18 @@ import { ref, watch, onMounted } from 'vue'
 
 const THEME_KEY = 'vinyl-theme'
 
-// Estado global reactivo
+// Global reactive state
 const theme = ref('dark')
 
 export function useTheme() {
-  // Inicializar tema desde localStorage o preferencia del sistema
+  // Initialize theme from localStorage or system preference
   const initTheme = () => {
     const savedTheme = localStorage.getItem(THEME_KEY)
     
     if (savedTheme) {
       theme.value = savedTheme
     } else {
-      // Detectar preferencia del sistema
+      // Detect system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       theme.value = prefersDark ? 'dark' : 'light'
     }
@@ -21,7 +21,7 @@ export function useTheme() {
     applyTheme(theme.value)
   }
 
-  // Aplicar tema al DOM
+  // Apply theme to DOM
   const applyTheme = (newTheme) => {
     const root = document.documentElement
     
@@ -34,26 +34,26 @@ export function useTheme() {
     }
   }
 
-  // Cambiar tema
+  // Toggle theme
   const toggleTheme = () => {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
   }
 
-  // Establecer tema específico
+  // Set specific theme
   const setTheme = (newTheme) => {
     theme.value = newTheme
   }
 
-  // Computed para saber si es dark mode
+  // Check if dark mode is active
   const isDark = () => theme.value === 'dark'
 
-  // Watch para persistir y aplicar cambios
+  // Watch for changes to persist and apply
   watch(theme, (newTheme) => {
     localStorage.setItem(THEME_KEY, newTheme)
     applyTheme(newTheme)
   })
 
-  // Inicializar en el montaje
+  // Initialize on mount
   onMounted(() => {
     initTheme()
   })
