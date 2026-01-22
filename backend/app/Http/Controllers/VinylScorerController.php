@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\AI\Agents\VinylScorerAgent;
 use App\AI\Tools\VinylScorer;
+use App\Models\DiscogsAnalysis;
 use App\Services\DiscogsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,22 +38,102 @@ class VinylScorerController extends Controller
         }
 
         try {
+            // Get Discogs data first
+            $discogsData = $this->discogs->getCompleteAnalysis($discogsId);
+            
+            if (!$discogsData) {
+                return response()->json(['error' => 'Release not found'], 404);
+            }
+
             // Use the AI Agent
             $agent = VinylScorerAgent::make();
+            
+            // Get price context
+            $lowestPrice = $discogsData['marketplace']['stats']['lowest_price']['value'] ?? null;
+            $priceSuggestions = $discogsData['marketplace']['price_suggestions'] ?? [];
+            $priceContext = $lowestPrice ? "Current lowest price: \${$lowestPrice}. " : "No listings available. ";
             
             $response = $agent->chat(
                 new UserMessage(
                     "Analyze the vinyl record with Discogs ID: {$discogsId}. " .
                     "Use the analyze_discogs tool to get the data, then " .
                     "use calculate_score to compute the investment score. " .
-                    "Provide your analysis and final recommendation."
+                    $priceContext .
+                    "At the end, you MUST include this exact format on its own line: " .
+                    "PRICE RECOMMENDATION: Min: \$XX.XX - Max: \$XX.XX " .
+                    "(Replace XX.XX with actual dollar amounts based on rarity, demand, and market value)"
                 )
+            );
+
+            $aiAnalysis = $response->getContent();
+
+            // Calculate score for storage
+            $scorer = new VinylScorer();
+            $score = $scorer->calculate(
+                have: $discogsData['community']['have'] ?? 0,
+                want: $discogsData['community']['want'] ?? 0,
+                rating: $discogsData['community']['rating_average'] ?? 0,
+                numForSale: $discogsData['marketplace']['total_listings'] ?? 0
+            );
+
+            // Extract price recommendation from AI response
+            $priceRec = $this->extractPriceRecommendation($aiAnalysis);
+
+            // Check if record exists to save previous values
+            $existing = DiscogsAnalysis::where('discogs_id', $discogsId)->first();
+
+            // Save to database automatically
+            $saved = DiscogsAnalysis::updateOrCreate(
+                ['discogs_id' => $discogsId],
+                [
+                    'title' => $discogsData['release']['title'] ?? 'Unknown',
+                    'artist_name' => $discogsData['release']['artist_name'] ?? 'Unknown',
+                    'year' => $discogsData['release']['year'] ?? null,
+                    'country' => $discogsData['release']['country'] ?? null,
+                    'label' => $discogsData['release']['label'] ?? null,
+                    'genres' => $discogsData['release']['genres'] ?? [],
+                    'styles' => $discogsData['release']['styles'] ?? [],
+                    'format' => $discogsData['release']['formats'][0]['name'] ?? null,
+                    'have' => $discogsData['community']['have'] ?? 0,
+                    'want' => $discogsData['community']['want'] ?? 0,
+                    'rating_average' => $discogsData['community']['rating_average'] ?? 0,
+                    'rating_count' => $discogsData['community']['rating_count'] ?? 0,
+                    'num_for_sale' => $discogsData['marketplace']['total_listings'] ?? 0,
+                    'lowest_price' => $discogsData['marketplace']['stats']['lowest_price']['value'] ?? null,
+                    'lowest_price_currency' => $discogsData['marketplace']['stats']['lowest_price']['currency'] ?? 'USD',
+                    'recommended_price_min' => $priceRec['min'],
+                    'recommended_price_max' => $priceRec['max'],
+                    'demand_ratio' => $discogsData['analysis']['demand_ratio'] ?? 0,
+                    'ai_score' => $score['total_score'],
+                    'ai_recommendation' => $score['recommendation'],
+                    'ai_analysis' => $aiAnalysis,
+                    'is_rare' => $discogsData['analysis']['is_rare'] ?? false,
+                    'is_in_demand' => $discogsData['analysis']['is_in_demand'] ?? false,
+                    'cover_image' => $discogsData['release']['images'][0]['uri'] ?? null,
+                    'thumb' => $discogsData['release']['images'][0]['uri150'] ?? null,
+                    'notes' => "AI Score: {$score['total_score']}/100 - {$score['recommendation']}",
+                    // Save previous values for trend tracking
+                    'previous_have' => $existing?->have,
+                    'previous_want' => $existing?->want,
+                    'previous_lowest_price' => $existing?->lowest_price,
+                    'fetched_at' => now(),
+                    'last_refreshed_at' => now(),
+                ]
             );
 
             return response()->json([
                 'source' => 'ai_agent',
                 'discogs_id' => $discogsId,
-                'analysis' => $response->getContent(),
+                'analysis' => $aiAnalysis,
+                'score' => $score['total_score'],
+                'recommendation' => $score['recommendation'],
+                'price_recommendation' => [
+                    'min' => $priceRec['min'],
+                    'max' => $priceRec['max'],
+                ],
+                'saved_to_db' => true,
+                'db_id' => $saved->id,
+                'is_trending' => $saved->isTrending(),
             ]);
 
         } catch (\Exception $e) {
@@ -172,6 +253,196 @@ class VinylScorerController extends Controller
         }
 
         return response()->json($response);
+    }
+
+    /**
+     * Refresh analysis for an existing record
+     * POST /api/vinyl-scorer/refresh/{discogs_id}
+     */
+    public function refresh(int $discogsId): JsonResponse
+    {
+        // Check if record exists
+        $existing = DiscogsAnalysis::where('discogs_id', $discogsId)->first();
+        
+        if (!$existing) {
+            return response()->json([
+                'error' => 'Record not found in database. Use /analyze first.',
+                'discogs_id' => $discogsId,
+            ], 404);
+        }
+
+        // Get fresh data from Discogs
+        $discogsData = $this->discogs->getCompleteAnalysis($discogsId);
+        
+        if (!$discogsData) {
+            return response()->json(['error' => 'Release not found on Discogs'], 404);
+        }
+
+        // Calculate new score
+        $scorer = new VinylScorer();
+        $score = $scorer->calculate(
+            have: $discogsData['community']['have'] ?? 0,
+            want: $discogsData['community']['want'] ?? 0,
+            rating: $discogsData['community']['rating_average'] ?? 0,
+            numForSale: $discogsData['marketplace']['total_listings'] ?? 0
+        );
+
+        // Calculate changes
+        $changes = [
+            'have' => ($discogsData['community']['have'] ?? 0) - $existing->have,
+            'want' => ($discogsData['community']['want'] ?? 0) - $existing->want,
+            'price' => $existing->lowest_price 
+                ? ($discogsData['marketplace']['stats']['lowest_price']['value'] ?? 0) - $existing->lowest_price 
+                : null,
+        ];
+
+        // Update record with previous values saved
+        $existing->update([
+            'previous_have' => $existing->have,
+            'previous_want' => $existing->want,
+            'previous_lowest_price' => $existing->lowest_price,
+            'have' => $discogsData['community']['have'] ?? 0,
+            'want' => $discogsData['community']['want'] ?? 0,
+            'rating_average' => $discogsData['community']['rating_average'] ?? 0,
+            'num_for_sale' => $discogsData['marketplace']['total_listings'] ?? 0,
+            'lowest_price' => $discogsData['marketplace']['stats']['lowest_price']['value'] ?? null,
+            'demand_ratio' => $discogsData['analysis']['demand_ratio'] ?? 0,
+            'ai_score' => $score['total_score'],
+            'ai_recommendation' => $score['recommendation'],
+            'is_rare' => $discogsData['analysis']['is_rare'] ?? false,
+            'is_in_demand' => $discogsData['analysis']['is_in_demand'] ?? false,
+            'last_refreshed_at' => now(),
+        ]);
+
+        $isTrending = $existing->isTrending();
+
+        return response()->json([
+            'message' => 'Analysis refreshed successfully',
+            'discogs_id' => $discogsId,
+            'title' => $existing->title,
+            'artist' => $existing->artist_name,
+            'score' => $score['total_score'],
+            'recommendation' => $score['recommendation'],
+            'changes' => $changes,
+            'is_trending' => $isTrending,
+            'trending_alert' => $isTrending ? '🔥 This vinyl is trending! Want increased significantly.' : null,
+        ]);
+    }
+
+    /**
+     * Refresh all items that need updating
+     * POST /api/vinyl-scorer/refresh-all
+     */
+    public function refreshAll(Request $request): JsonResponse
+    {
+        $hours = $request->input('hours', 24);
+        $limit = $request->input('limit', 10);
+
+        $items = DiscogsAnalysis::needsRefresh($hours)
+            ->limit($limit)
+            ->get();
+
+        $results = [];
+        foreach ($items as $item) {
+            $discogsData = $this->discogs->getCompleteAnalysis($item->discogs_id);
+            
+            if (!$discogsData) {
+                $results[] = ['discogs_id' => $item->discogs_id, 'status' => 'not_found'];
+                continue;
+            }
+
+            $scorer = new VinylScorer();
+            $score = $scorer->calculate(
+                have: $discogsData['community']['have'] ?? 0,
+                want: $discogsData['community']['want'] ?? 0,
+                rating: $discogsData['community']['rating_average'] ?? 0,
+                numForSale: $discogsData['marketplace']['total_listings'] ?? 0
+            );
+
+            $item->update([
+                'previous_have' => $item->have,
+                'previous_want' => $item->want,
+                'previous_lowest_price' => $item->lowest_price,
+                'have' => $discogsData['community']['have'] ?? 0,
+                'want' => $discogsData['community']['want'] ?? 0,
+                'lowest_price' => $discogsData['marketplace']['stats']['lowest_price']['value'] ?? null,
+                'demand_ratio' => $discogsData['analysis']['demand_ratio'] ?? 0,
+                'ai_score' => $score['total_score'],
+                'ai_recommendation' => $score['recommendation'],
+                'last_refreshed_at' => now(),
+            ]);
+
+            $results[] = [
+                'discogs_id' => $item->discogs_id,
+                'title' => $item->title,
+                'status' => 'refreshed',
+                'score' => $score['total_score'],
+                'is_trending' => $item->isTrending(),
+            ];
+        }
+
+        return response()->json([
+            'refreshed' => count($results),
+            'results' => $results,
+        ]);
+    }
+
+    /**
+     * Get trending items
+     * GET /api/vinyl-scorer/trending
+     */
+    public function trending(): JsonResponse
+    {
+        $trending = DiscogsAnalysis::trending()
+            ->orderByRaw('(want - previous_want) DESC')
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'count' => $trending->count(),
+            'items' => $trending->map(fn($item) => [
+                'discogs_id' => $item->discogs_id,
+                'title' => $item->title,
+                'artist' => $item->artist_name,
+                'score' => $item->ai_score,
+                'recommendation' => $item->ai_recommendation,
+                'want_change' => $item->want - $item->previous_want,
+                'want_change_percent' => $item->previous_want > 0 
+                    ? round((($item->want - $item->previous_want) / $item->previous_want) * 100, 1) 
+                    : null,
+                'price_recommendation' => [
+                    'min' => $item->recommended_price_min,
+                    'max' => $item->recommended_price_max,
+                ],
+            ]),
+        ]);
+    }
+
+    /**
+     * Extract price recommendation from AI analysis text
+     */
+    protected function extractPriceRecommendation(string $analysis): array
+    {
+        $min = null;
+        $max = null;
+
+        // Try to find "Min: $X" pattern
+        if (preg_match('/min[:\s]*\$?(\d+(?:\.\d{2})?)/i', $analysis, $matches)) {
+            $min = (float) $matches[1];
+        }
+
+        // Try to find "Max: $X" pattern
+        if (preg_match('/max[:\s]*\$?(\d+(?:\.\d{2})?)/i', $analysis, $matches)) {
+            $max = (float) $matches[1];
+        }
+
+        // Alternative: Try to find "$X - $Y" pattern
+        if (!$min && !$max && preg_match('/\$(\d+(?:\.\d{2})?)\s*[-–]\s*\$(\d+(?:\.\d{2})?)/i', $analysis, $matches)) {
+            $min = (float) $matches[1];
+            $max = (float) $matches[2];
+        }
+
+        return ['min' => $min, 'max' => $max];
     }
 
     /**

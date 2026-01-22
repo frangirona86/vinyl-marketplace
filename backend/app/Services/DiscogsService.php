@@ -82,6 +82,59 @@ class DiscogsService
     }
 
     /**
+     * Search releases with market data (have/want/price)
+     */
+    public function searchWithMarketData(string $query, int $perPage = 5, int $page = 1): ?array
+    {
+        $cacheKey = "discogs_search_market_" . md5($query . $perPage . $page);
+
+        return Cache::remember($cacheKey, 1800, function () use ($query, $perPage, $page) {
+            // First get search results
+            $searchResults = $this->searchReleases($query, $perPage, $page);
+
+            if (!$searchResults || empty($searchResults['results'])) {
+                return null;
+            }
+
+            // Enrich each result with community and marketplace data
+            $enrichedResults = [];
+            foreach ($searchResults['results'] as $result) {
+                $releaseId = $result['discogs_id'] ?? $result['id'] ?? null;
+                
+                if (!$releaseId) {
+                    $enrichedResults[] = $result;
+                    continue;
+                }
+
+                // Get community stats (have/want/rating)
+                $communityStats = $this->getCommunityStats($releaseId);
+                
+                // Get marketplace stats (lowest price, for sale count)
+                $marketStats = $this->getMarketplaceStats($releaseId);
+
+                $enrichedResults[] = array_merge($result, [
+                    'id' => $releaseId, // Add id for compatibility
+                    'have' => $communityStats['have'] ?? 0,
+                    'want' => $communityStats['want'] ?? 0,
+                    'rating_average' => $communityStats['rating_average'] ?? 0,
+                    'rating_count' => $communityStats['rating_count'] ?? 0,
+                    'for_sale' => $marketStats['num_for_sale'] ?? 0,
+                    'lowest_price' => $marketStats['lowest_price']['value'] ?? null,
+                    'lowest_price_currency' => $marketStats['lowest_price']['currency'] ?? 'USD',
+                ]);
+                
+                // Small delay to respect rate limits
+                usleep(250000); // 250ms to respect Discogs rate limit
+            }
+
+            return [
+                'results' => $enrichedResults,
+                'pagination' => $searchResults['pagination'] ?? null,
+            ];
+        });
+    }
+
+    /**
      * Search for artists
      */
     public function searchArtists(string $query, int $perPage = 10): ?array
@@ -268,39 +321,6 @@ class DiscogsService
                 'is_in_demand' => ($community['want'] ?? 0) > ($community['have'] ?? 0),
                 'fetched_at' => now()->toISOString(),
             ],
-        ];
-    }
-
-    /**
-     * Search releases with marketplace data (for browsing)
-     */
-    public function searchWithMarketData(string $query, int $perPage = 10, int $page = 1): ?array
-    {
-        $searchResults = $this->searchReleases($query, $perPage, $page);
-
-        if (!$searchResults || empty($searchResults['results'])) {
-            return null;
-        }
-
-        // Enrich with community stats (limited to avoid rate limits)
-        $enrichedResults = collect($searchResults['results'])->map(function ($result) {
-            // Get community stats for each result
-            $communityResponse = $this->request("/releases/{$result['discogs_id']}");
-
-            $result['community'] = [
-                'have' => $communityResponse['community']['have'] ?? 0,
-                'want' => $communityResponse['community']['want'] ?? 0,
-            ];
-
-            $result['num_for_sale'] = $communityResponse['num_for_sale'] ?? 0;
-            $result['lowest_price'] = $communityResponse['lowest_price'] ?? null;
-
-            return $result;
-        })->toArray();
-
-        return [
-            'results' => $enrichedResults,
-            'pagination' => $searchResults['pagination'],
         ];
     }
 

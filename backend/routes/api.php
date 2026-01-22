@@ -25,6 +25,7 @@ Route::prefix("discogs")->group(function () {
     // Search
     Route::get("/search", [DiscogsController::class, "searchReleases"]);
     Route::get("/search-market", [DiscogsController::class, "searchWithMarket"]);
+    Route::get("/search-smart", [DiscogsController::class, "searchSmart"]); // AI-enriched search
     Route::get("/artists-search", [DiscogsController::class, "searchArtists"]);
     
     // Release details
@@ -44,6 +45,9 @@ Route::prefix("discogs")->group(function () {
     Route::get("/saved", [DiscogsController::class, "getSaved"]);
     Route::get("/saved/stats", [DiscogsController::class, "getSavedStats"]);
     Route::delete("/saved/{id}", [DiscogsController::class, "removeSaved"]);
+    
+    // Filters for frontend (genres, styles, countries, etc.)
+    Route::get("/filters", [DiscogsController::class, "getFilters"]);
 });
 
 // Vinyl Scorer AI Agent
@@ -56,4 +60,11 @@ Route::prefix("vinyl-scorer")->group(function () {
     
     // Batch scoring for multiple releases
     Route::post("/batch", [VinylScorerController::class, "batchScore"]);
+    
+    // Refresh/update analysis for trend detection
+    Route::post("/refresh/{discogs_id}", [VinylScorerController::class, "refresh"]);
+    Route::post("/refresh-all", [VinylScorerController::class, "refreshAll"]);
+    
+    // Get trending vinyls (increasing in demand)
+    Route::get("/trending", [VinylScorerController::class, "trending"]);
 });
