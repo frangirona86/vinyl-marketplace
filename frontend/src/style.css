@@ -1,0 +1,168 @@
+/* Google Fonts - loaded via link tag in index.html for better performance */
+@import "tailwindcss";
+
+/* Tailwind v4 Theme Configuration */
+@theme {
+  /* Dark Theme Colors (default) */
+  --color-vinyl-primary: #0F0F0F;
+  --color-vinyl-secondary: #1E1E1E;
+  --color-vinyl-surface: #252525;
+  --color-vinyl-surface-hover: #2A2A2A;
+  --color-vinyl-coral: #FF4655;
+  --color-vinyl-lilac: #9A77FF;
+  --color-vinyl-text: #F5F5F5;
+  --color-vinyl-text-muted: #A0A0A0;
+  --color-vinyl-border: #444444;
+  --color-vinyl-border-light: #333333;
+  
+  /* Fonts */
+  --font-display: 'Unica One', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* Dark Theme (default) */
+:root,
+:root.dark {
+  --bg-primary: #0F0F0F;
+  --bg-secondary: #1E1E1E;
+  --bg-surface: #252525;
+  --bg-surface-hover: #2A2A2A;
+  --text-primary: #F5F5F5;
+  --text-muted: #A0A0A0;
+  --border-color: #444444;
+  --border-light: #333333;
+  --accent-coral: #FF4655;
+  --accent-lilac: #9A77FF;
+  
+  color-scheme: dark;
+}
+
+/* Light Theme */
+:root.light {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-surface: #F1F3F4;
+  --bg-surface-hover: #E8EAED;
+  --text-primary: #1A1A1A;
+  --text-muted: #5F6368;
+  --border-color: #DADCE0;
+  --border-light: #E8EAED;
+  --accent-coral: #E53935;
+  --accent-lilac: #7C4DFF;
+  
+  color-scheme: light;
+}
+
+/* Base styles using CSS variables */
+html {
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+/* Display font utility */
+.font-display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Theme-aware utility classes */
+.bg-theme-primary { background-color: var(--bg-primary); }
+.bg-theme-secondary { background-color: var(--bg-secondary); }
+.bg-theme-surface { background-color: var(--bg-surface); }
+.bg-theme-surface-hover { background-color: var(--bg-surface-hover); }
+.text-theme-primary { color: var(--text-primary); }
+.text-theme-muted { color: var(--text-muted); }
+.border-theme { border-color: var(--border-color); }
+.border-theme-light { border-color: var(--border-light); }
+.bg-accent-coral { background-color: var(--accent-coral); }
+.bg-accent-lilac { background-color: var(--accent-lilac); }
+.text-accent-coral { color: var(--accent-coral); }
+.text-accent-lilac { color: var(--accent-lilac); }
+.border-accent-coral { border-color: var(--accent-coral); }
+.border-accent-lilac { border-color: var(--accent-lilac); }
+
+/* Hover states */
+.hover\:bg-theme-surface:hover { background-color: var(--bg-surface); }
+.hover\:bg-theme-surface-hover:hover { background-color: var(--bg-surface-hover); }
+.hover\:text-theme-primary:hover { color: var(--text-primary); }
+.hover\:text-accent-lilac:hover { color: var(--accent-lilac); }
+.hover\:border-accent-lilac:hover { border-color: var(--accent-lilac); }
+.hover\:border-theme:hover { border-color: var(--border-color); }
+
+/* Group hover */
+.group:hover .group-hover\:text-accent-lilac { color: var(--accent-lilac); }
+.group:hover .group-hover\:scale-105 { transform: scale(1.05); }
+.group:hover .group-hover\:scale-110 { transform: scale(1.1); }
+.group:hover .group-hover\:opacity-100 { opacity: 1; }
+
+/* Focus states */
+.focus\:border-accent-lilac:focus { border-color: var(--accent-lilac); }
+
+/* Opacity variants */
+.bg-accent-coral\/15 { background-color: color-mix(in srgb, var(--accent-coral) 15%, transparent); }
+.bg-accent-lilac\/15 { background-color: color-mix(in srgb, var(--accent-lilac) 15%, transparent); }
+.bg-accent-lilac\/20 { background-color: color-mix(in srgb, var(--accent-lilac) 20%, transparent); }
+.bg-theme-primary\/95 { background-color: color-mix(in srgb, var(--bg-primary) 95%, transparent); }
+.bg-theme-secondary\/95 { background-color: color-mix(in srgb, var(--bg-secondary) 95%, transparent); }
+.border-accent-lilac\/50 { border-color: color-mix(in srgb, var(--accent-lilac) 50%, transparent); }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Theme toggle animation */
+.theme-toggle {
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: rotate(15deg);
+}
+
+/* Card transition for theme changes */
+.card-theme {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-light);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.2s ease;
+}
+
+.card-theme:hover {
+  border-color: var(--border-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+:root.dark .card-theme:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
