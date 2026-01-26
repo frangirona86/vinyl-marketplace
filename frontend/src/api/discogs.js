@@ -50,6 +50,12 @@ export const discogsApi = {
     return response.data
   },
 
+  // Get saved vinyl by discogs_id
+  async getSavedById(id) {
+    const response = await api.get(`/discogs/saved/${id}`)
+    return response.data
+  },
+
   // Save release to analysis
   async saveRelease(id, data = {}) {
     const response = await api.post(`/discogs/releases/${id}/save`, data)

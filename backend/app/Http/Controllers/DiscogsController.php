@@ -499,6 +499,21 @@ class DiscogsController extends Controller
     }
 
     /**
+     * Get a single saved analysis by discogs_id
+     * GET /api/discogs/saved/{id}
+     */
+    public function getSavedById(int $id): JsonResponse
+    {
+        $vinyl = DiscogsAnalysis::where('discogs_id', $id)->first();
+
+        if (!$vinyl) {
+            return response()->json(['message' => 'Vinyl not found'], 404);
+        }
+
+        return response()->json(['data' => $vinyl]);
+    }
+
+    /**
      * Get available filters (genres, styles, countries, years)
      * GET /api/discogs/filters
      */

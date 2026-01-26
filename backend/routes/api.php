@@ -43,6 +43,7 @@ Route::prefix("discogs")->group(function () {
     
     // Saved analyses
     Route::get("/saved", [DiscogsController::class, "getSaved"]);
+    Route::get("/saved/{id}", [DiscogsController::class, "getSavedById"]);
     Route::get("/saved/stats", [DiscogsController::class, "getSavedStats"]);
     Route::delete("/saved/{id}", [DiscogsController::class, "removeSaved"]);
     

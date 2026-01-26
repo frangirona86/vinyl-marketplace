@@ -180,4 +180,33 @@ describe('VinylCard', () => {
     badge = wrapper.find('[class*="text-accent-coral"]')
     expect(badge.exists()).toBe(true)
   })
+
+  it('shows YouTube play indicator when has_youtube is true', () => {
+    const vinylWithYoutube = { ...mockVinyl, has_youtube: true }
+    const wrapper = mount(VinylCard, {
+      props: { vinyl: vinylWithYoutube }
+    })
+
+    const youtubeIndicator = wrapper.find('[class*="bg-red-600"]')
+    expect(youtubeIndicator.exists()).toBe(true)
+  })
+
+  it('does not show YouTube indicator when has_youtube is false', () => {
+    const vinylWithoutYoutube = { ...mockVinyl, has_youtube: false }
+    const wrapper = mount(VinylCard, {
+      props: { vinyl: vinylWithoutYoutube }
+    })
+
+    const youtubeIndicator = wrapper.find('[class*="bg-red-600"]')
+    expect(youtubeIndicator.exists()).toBe(false)
+  })
+
+  it('does not show YouTube indicator when has_youtube is undefined', () => {
+    const wrapper = mount(VinylCard, {
+      props: { vinyl: mockVinyl }
+    })
+
+    const youtubeIndicator = wrapper.find('[class*="bg-red-600"]')
+    expect(youtubeIndicator.exists()).toBe(false)
+  })
 })

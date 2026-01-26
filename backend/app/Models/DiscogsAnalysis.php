@@ -34,6 +34,9 @@ class DiscogsAnalysis extends Model
         "ai_score",
         "ai_recommendation",
         "ai_analysis",
+        "youtube_tracks",
+        "has_youtube",
+        "youtube_fetched_at",
         "is_rare",
         "is_in_demand",
         "raw_data",
@@ -52,12 +55,15 @@ class DiscogsAnalysis extends Model
         "genres" => "array",
         "styles" => "array",
         "price_suggestions" => "array",
+        "youtube_tracks" => "array",
         "raw_data" => "array",
         "is_rare" => "boolean",
         "is_in_demand" => "boolean",
         "is_watchlist" => "boolean",
+        "has_youtube" => "boolean",
         "fetched_at" => "datetime",
         "last_refreshed_at" => "datetime",
+        "youtube_fetched_at" => "datetime",
         "demand_ratio" => "decimal:4",
         "lowest_price" => "decimal:2",
         "recommended_price_min" => "decimal:2",
@@ -130,6 +136,17 @@ class DiscogsAnalysis extends Model
     public function scopeByFormat($query, $format)
     {
         return $query->where("format", $format);
+    }
+
+    public function scopeWithYoutube($query)
+    {
+        return $query->where("has_youtube", true);
+    }
+
+    public function scopeWithoutYoutube($query)
+    {
+        return $query->where("has_youtube", false)
+            ->orWhereNull("has_youtube");
     }
 
     public function scopeHighScoring($query, $minScore = 70)

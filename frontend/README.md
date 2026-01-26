@@ -72,7 +72,7 @@ frontend/
 │   │   └── index.js             # Routes configuration
 │   ├── views/
 │   │   ├── SearchResults.vue    # Search results page
-│   │   ├── VinylDetail.vue      # Vinyl detail page
+│   │   ├── VinylDetail.vue      # Vinyl detail page with YouTube player
 │   │   └── VinylListing.vue     # Main listing page
 │   ├── App.vue                  # Root component
 │   ├── main.js                  # Entry point
@@ -95,6 +95,7 @@ frontend/
 - Multi-field sorting
 - Full pagination
 - Skeleton loading states
+- YouTube preview indicator on cards
 
 ### Vinyl Cards
 - Album cover with fallback
@@ -105,6 +106,22 @@ frontend/
 - Lowest price
 - AI score and recommendation
 - Rarity badge
+- YouTube play indicator (red button)
+
+### Vinyl Detail Page
+- Full album artwork
+- AI analysis with score and recommendation
+- Market statistics (have/want/demand ratio)
+- Genres and styles
+- YouTube tracks section with embedded player
+- Modal video player
+- Direct links to Discogs and YouTube
+
+### YouTube Integration
+- Automatic track search for each vinyl
+- Embedded video player in detail view
+- Preview indicator in listing cards
+- Relevance-based track matching
 
 ### Theme System
 - Dark mode (default)
@@ -167,9 +184,10 @@ server: {
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/discogs/saved` | List saved vinyls |
+| `GET /api/discogs/saved` | List saved vinyls (includes YouTube data) |
+| `GET /api/discogs/saved/:id` | Get single vinyl with YouTube tracks |
 | `GET /api/discogs/filters` | Get available filters |
-| `GET /api/discogs/search-smart` | Search with insights |
+| `GET /api/discogs/search-smart` | Search with AI insights |
 | `GET /api/discogs/releases/:id/analysis` | Get vinyl analysis |
 | `POST /api/discogs/releases/:id/save` | Save vinyl |
 | `DELETE /api/discogs/saved/:id` | Delete saved vinyl |
@@ -187,9 +205,9 @@ npm run test:run
 npm run test:coverage
 ```
 
-### Test Coverage (63 tests)
+### Test Coverage (66 tests)
 
-- **VinylCard** (15 tests): Rendering, badges, colors, events
+- **VinylCard** (18 tests): Rendering, badges, colors, events, YouTube indicator
 - **Pagination** (14 tests): Navigation, disabled states
 - **EmptyState** (9 tests): Props, slots, events
 - **ThemeToggle** (7 tests): Icons, toggle functionality
@@ -201,6 +219,7 @@ npm run test:coverage
 ### Prerequisites
 1. Laravel backend running at `http://localhost:8000`
 2. Database configured
+3. YouTube API key configured (for track previews)
 
 ### Start Development
 ```bash
@@ -210,6 +229,19 @@ php artisan serve
 
 # Terminal 2 - Frontend
 npm run dev
+```
+
+### Backend Commands
+
+```bash
+# Import vinyls from Discogs
+php artisan discogs:import --styles=Techno --styles=Electro --total=100
+
+# Run AI analysis on vinyls
+php artisan vinyls:analyze-ai --limit=100
+
+# Fetch YouTube tracks
+php artisan vinyls:youtube --limit=100
 ```
 
 ## License

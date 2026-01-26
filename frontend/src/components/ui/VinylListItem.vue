@@ -103,6 +103,17 @@ const genres = computed(() => {
         >
           {{ vinyl.ai_recommendation }}
         </span>
+        <!-- YouTube indicator -->
+        <span 
+          v-if="vinyl.has_youtube" 
+          class="text-xs px-2 py-0.5 rounded-full bg-red-600/15 text-red-500 flex items-center gap-1"
+          title="Preview available"
+        >
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          Preview
+        </span>
       </div>
 
       <!-- Stats -->

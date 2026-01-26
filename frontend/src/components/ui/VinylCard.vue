@@ -79,6 +79,17 @@ const genres = computed(() => {
         Rare
       </div>
 
+      <!-- YouTube Play Indicator -->
+      <div 
+        v-if="vinyl.has_youtube"
+        class="absolute bottom-3 left-3 w-8 h-8 rounded-full bg-red-600 flex items-center justify-center shadow-lg"
+        title="Preview available on YouTube"
+      >
+        <svg class="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </div>
+
       <!-- Watchlist Button -->
       <button
         v-if="vinyl.is_watchlist"
