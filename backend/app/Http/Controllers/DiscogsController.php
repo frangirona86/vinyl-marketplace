@@ -416,6 +416,8 @@ class DiscogsController extends Controller
             [
                 "title" => $release["title"],
                 "artist_name" => $release["artist_name"],
+                "artist_id" => $release["artist_id"] ?? null,
+                "artist_thumbnail" => $release["artist_thumbnail"] ?? null,
                 "year" => $release["year"],
                 "country" => $release["country"],
                 "label" => $release["label"],
@@ -424,6 +426,7 @@ class DiscogsController extends Controller
                 "styles" => $release["styles"] ?? [],
                 "tracklist" => $release["tracklist"] ?? [],
                 "format" => $release["formats"][0]["name"] ?? null,
+                "format_descriptions" => $release["format_descriptions"] ?? [],
                 "have" => $community["have"] ?? 0,
                 "want" => $community["want"] ?? 0,
                 "rating_average" => $community["rating_average"] ?? 0,
@@ -439,7 +442,8 @@ class DiscogsController extends Controller
                 "cover_image" => $release["images"][0]["uri"] ?? null,
                 "thumb" => $release["images"][0]["uri150"] ?? null,
                 "is_watchlist" => $request->input("watchlist", false),
-                "notes" => $request->input("notes"),
+                "notes" => $release["notes"] ?? $request->input("notes"),
+                "data_quality" => $release["data_quality"] ?? null,
                 "fetched_at" => now(),
             ]
         );
@@ -595,11 +599,7 @@ class DiscogsController extends Controller
             "in_demand" => DiscogsAnalysis::inDemand()->count(),
             "avg_demand_ratio" => DiscogsAnalysis::avg("demand_ratio"),
             "avg_price" => DiscogsAnalysis::whereNotNull("lowest_price")->avg("lowest_price"),
-            "by_genre" => DiscogsAnalysis::selectRaw("JSON_EXTRACT(genres, \"$[0]\") as genre, COUNT(*) as count")
-                ->groupBy("genre")
-                ->orderByDesc("count")
-                ->limit(10)
-                ->get(),
+            "by_genre" => $this->getGenreStats(),
             "top_demand" => DiscogsAnalysis::orderByDesc("demand_ratio")
                 ->limit(5)
                 ->get(["discogs_id", "title", "artist_name", "demand_ratio", "have", "want"]),
@@ -623,5 +623,36 @@ class DiscogsController extends Controller
         $analysis->delete();
 
         return response()->json(["message" => "Removed from analysis database"]);
+    }
+
+    /**
+     * Get genre statistics (PostgreSQL and SQLite compatible)
+     */
+    protected function getGenreStats(): array
+    {
+        $vinyls = DiscogsAnalysis::whereNotNull('genres')
+            ->get(['genres']);
+        
+        $genreCounts = [];
+        foreach ($vinyls as $vinyl) {
+            $genres = is_array($vinyl->genres) ? $vinyl->genres : [];
+            foreach ($genres as $genre) {
+                if (!empty($genre)) {
+                    $genreCounts[$genre] = ($genreCounts[$genre] ?? 0) + 1;
+                }
+            }
+        }
+        
+        arsort($genreCounts);
+        
+        $result = [];
+        $count = 0;
+        foreach ($genreCounts as $genre => $cnt) {
+            if ($count >= 10) break;
+            $result[] = ['genre' => $genre, 'count' => $cnt];
+            $count++;
+        }
+        
+        return $result;
     }
 }

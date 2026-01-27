@@ -349,10 +349,14 @@ class DiscogsService
      */
     protected function formatReleaseDetails(array $response): array
     {
-        // Extract artist name (handle various formats)
+        // Extract artist info (handle various formats)
         $artistName = null;
+        $artistId = null;
+        $artistThumbnail = null;
         if (isset($response['artists']) && !empty($response['artists'])) {
             $artistName = $response['artists'][0]['name'] ?? null;
+            $artistId = $response['artists'][0]['id'] ?? null;
+            $artistThumbnail = $response['artists'][0]['thumbnail_url'] ?? null;
         }
 
         // Extract tracklist
@@ -364,10 +368,18 @@ class DiscogsService
             ];
         })->toArray();
 
+        // Extract format descriptions (e.g., "7\"", "45 RPM", "Single")
+        $formatDescriptions = [];
+        if (isset($response['formats']) && !empty($response['formats'])) {
+            $formatDescriptions = $response['formats'][0]['descriptions'] ?? [];
+        }
+
         return [
             'discogs_id' => $response['id'] ?? null,
             'title' => $response['title'] ?? null,
             'artist_name' => $artistName,
+            'artist_id' => $artistId,
+            'artist_thumbnail' => $artistThumbnail,
             'artists' => $response['artists'] ?? [],
             'year' => $response['year'] ?? null,
             'country' => $response['country'] ?? null,
@@ -375,6 +387,7 @@ class DiscogsService
             'catalog_number' => $response['labels'][0]['catno'] ?? null,
             'genres' => $response['genres'] ?? [],
             'styles' => $response['styles'] ?? [],
+            'format_descriptions' => $formatDescriptions,
             'formats' => collect($response['formats'] ?? [])->map(function ($format) {
                 return [
                     'name' => $format['name'] ?? null,

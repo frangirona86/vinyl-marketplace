@@ -51,7 +51,8 @@ frontend/
 │   └── placeholder-vinyl.svg    # Image placeholder
 ├── src/
 │   ├── api/
-│   │   └── discogs.js           # API service for backend
+│   │   ├── discogs.js           # Discogs API service
+│   │   └── search.js            # 🆕 Smart Search API service
 │   ├── components/
 │   │   ├── layout/
 │   │   │   └── AppHeader.vue    # Application header
@@ -60,7 +61,8 @@ frontend/
 │   │       ├── FiltersPanel.vue     # Filters panel
 │   │       ├── LoadingSpinner.vue   # Loading spinner
 │   │       ├── Pagination.vue       # Pagination component
-│   │       ├── SearchBar.vue        # Search bar
+│   │       ├── SearchBar.vue        # Basic search bar
+│   │       ├── SmartSearchBar.vue   # 🆕 Smart search with autocomplete
 │   │       ├── ThemeToggle.vue      # Dark/light mode toggle
 │   │       ├── VinylCard.vue        # Vinyl card (grid view)
 │   │       ├── VinylCardSkeleton.vue # Skeleton loading
@@ -89,6 +91,16 @@ frontend/
 
 ## Features
 
+### Smart Search (New!)
+- Real-time autocomplete suggestions
+- Categorized suggestions (artists, genres, labels, vinyls)
+- Search history tracking
+- Popular searches display
+- Advanced filters (genre, year range, price range)
+- Sorting options (relevance, demand, price, year, rarity)
+- Results with AI insights and recommendations
+- Records user selections to improve suggestions
+
 ### Listing View (PriceRunner style)
 - Grid and list view modes
 - Sidebar filters (genre, style, country, price, demand)
@@ -112,6 +124,9 @@ frontend/
 - Full album artwork
 - AI analysis with score and recommendation
 - Market statistics (have/want/demand ratio)
+- Market price range (from/to based on condition)
+- Complete tracklist with positions and durations
+- Tracklist-YouTube integration (play button on matching tracks)
 - Genres and styles
 - YouTube tracks section with embedded player
 - Modal video player
@@ -191,6 +206,17 @@ server: {
 | `GET /api/discogs/releases/:id/analysis` | Get vinyl analysis |
 | `POST /api/discogs/releases/:id/save` | Save vinyl |
 | `DELETE /api/discogs/saved/:id` | Delete saved vinyl |
+
+### Smart Search API (New!)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/search?q=query` | Full-text search with filters |
+| `GET /api/search/suggest?q=query` | Autocomplete suggestions |
+| `GET /api/search/history` | User search history |
+| `DELETE /api/search/history` | Clear search history |
+| `POST /api/search/select` | Record user selection |
+| `GET /api/search/stats` | Search statistics |
 
 ### Queue API (Background Processing)
 

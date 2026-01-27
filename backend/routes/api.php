@@ -7,6 +7,7 @@ use App\Http\Controllers\VariantController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DiscogsController;
 use App\Http\Controllers\VinylScorerController;
+use App\Http\Controllers\SearchController;
 
 // Records API
 Route::apiResource("records", RecordController::class);
@@ -77,4 +78,27 @@ Route::prefix("vinyl-scorer")->group(function () {
     
     // Get trending vinyls (increasing in demand)
     Route::get("/trending", [VinylScorerController::class, "trending"]);
+});
+
+// Smart Search API (with history and autocomplete)
+Route::prefix("search")->group(function () {
+    // Autocomplete suggestions
+    Route::get("/suggest", [SearchController::class, "suggest"]);
+    
+    // Full search with filters
+    Route::get("/", [SearchController::class, "search"]);
+    
+    // Search history
+    Route::get("/history", [SearchController::class, "history"]);
+    Route::delete("/history", [SearchController::class, "clearHistory"]);
+    
+    // Record selection (for improving suggestions)
+    Route::post("/select", [SearchController::class, "recordSelection"]);
+    
+    // Search stats
+    Route::get("/stats", [SearchController::class, "stats"]);
+    
+    // Cache management (for scaling)
+    Route::post("/warm-cache", [SearchController::class, "warmCache"]);
+    Route::delete("/cache", [SearchController::class, "invalidateCache"]);
 });

@@ -133,6 +133,112 @@ curl "http://localhost:8080/api/discogs/filters"
 }
 ```
 
+### 🔍 Smart Search API (New!)
+
+Advanced search system with autocomplete, history tracking, and intelligent caching.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/search?q=query` | Full-text search with filters |
+| `GET /api/search/suggest?q=query` | Autocomplete suggestions |
+| `GET /api/search/history` | User search history |
+| `DELETE /api/search/history` | Clear search history |
+| `POST /api/search/select` | Record user selection (improves suggestions) |
+| `GET /api/search/stats` | Search statistics |
+| `POST /api/search/warm-cache` | Pre-warm cache for common queries |
+| `DELETE /api/search/cache` | Invalidate search cache |
+
+#### Smart Search Example
+
+```bash
+curl "http://localhost:8080/api/search?q=aphex+twin&sort=demand&genre=Electronic"
+```
+
+**Response:**
+```json
+{
+  "query": "aphex twin",
+  "type": "all",
+  "results": {
+    "local": {
+      "data": [
+        {
+          "id": 1234,
+          "title": "Selected Ambient Works",
+          "artist": "Aphex Twin",
+          "year": 1992,
+          "genres": ["Electronic"],
+          "have": 200,
+          "want": 800,
+          "demand_ratio": 4.0,
+          "lowest_price": 120.00,
+          "insights": {
+            "tags": [
+              {"type": "rarity", "label": "💎 Ultra Rare", "value": "ultra_rare"},
+              {"type": "demand", "label": "🔥 Hot", "value": "hot"}
+            ],
+            "quick_score": 85,
+            "recommendation": "BUY"
+          },
+          "source": "local"
+        }
+      ],
+      "total": 5,
+      "per_page": 20,
+      "current_page": 1
+    },
+    "discogs": []
+  },
+  "total": 5,
+  "filters_applied": {"sort": "demand", "genre": "Electronic"}
+}
+```
+
+#### Autocomplete Suggestions
+
+```bash
+curl "http://localhost:8080/api/search/suggest?q=beat"
+```
+
+**Response:**
+```json
+{
+  "query": "beat",
+  "suggestions": {
+    "artists": [
+      {"id": 1, "name": "The Beatles", "vinyl_count": 15, "avg_demand": 1.8}
+    ],
+    "genres": [
+      {"name": "Beat", "count": 42, "type": "genre"}
+    ],
+    "labels": [
+      {"name": "Beat Records", "count": 8, "type": "label"}
+    ],
+    "vinyls": [
+      {"id": 123, "title": "Abbey Road", "artist": "The Beatles", "price": 30.00}
+    ]
+  },
+  "recent": [],
+  "popular": [
+    {"query": "electronic", "count": 25}
+  ]
+}
+```
+
+#### Search Filters
+
+| Filter | Type | Description |
+|--------|------|-------------|
+| `q` | string | Search query (required, min 2 chars) |
+| `type` | string | all, vinyl, artist, genre, label |
+| `genre` | string | Filter by genre |
+| `year_from` | integer | Minimum year |
+| `year_to` | integer | Maximum year |
+| `price_min` | numeric | Minimum price |
+| `price_max` | numeric | Maximum price |
+| `sort` | string | relevance, demand, price_asc, price_desc, year, rare |
+| `per_page` | integer | Results per page (max 50) |
+
 ### 🔄 Queue System (Redis)
 
 Asynchronous job processing for heavy tasks. Uses Redis as queue driver with rate limiting.
@@ -301,6 +407,9 @@ DISCOGS_USER_AGENT="VinylMarketplace/1.0"
 # OpenAI API (for AI Vinyl Scorer - get key at https://platform.openai.com/)
 OPENAI_API_KEY=your_openai_key
 OPENAI_MODEL=gpt-4o-mini
+
+# YouTube API (for track previews - get key at https://console.cloud.google.com/)
+YOUTUBE_API_KEY=your_youtube_key
 ```
 
 ## 🧪 Testing
@@ -310,20 +419,28 @@ OPENAI_MODEL=gpt-4o-mini
 docker exec vinyl_app php artisan test
 
 # Run specific test suites
+docker exec vinyl_app php artisan test --filter=SearchControllerTest
 docker exec vinyl_app php artisan test --filter=DiscogsControllerTest
 docker exec vinyl_app php artisan test --filter=VinylScorerControllerTest
 docker exec vinyl_app php artisan test --filter=DiscogsAnalysisTest
 ```
 
 **Test Coverage:**
-- 92 tests, 276 assertions
-- DiscogsAnalysis model scopes & attributes
-- Search smart with insights
-- Filters endpoint
-- Vinyl scorer (quick, batch, analyze)
-- Refresh & trending detection
-- Queue controller (analyze, batch, youtube, import)
-- Job tests (AnalyzeVinylJob, FetchYouTubeTracksJob)
+- 128 tests, 389 assertions
+
+| Test Suite | Tests | Description |
+|------------|-------|-------------|
+| SearchControllerTest | 24 | Smart search, suggestions, history, caching |
+| DiscogsControllerTest | 14 | Search smart, filters, saved analyses |
+| VinylScorerControllerTest | 16 | Quick score, analyze, refresh, trending |
+| RecordControllerTest | 14 | CRUD operations, variants |
+| QueueControllerTest | 8 | Analyze, batch, YouTube, import jobs |
+| SearchHistoryTest | 12 | History recording, scopes, popular searches |
+| DiscogsAnalysisTest | 22 | Model scopes, attributes, casting |
+| FetchYouTubeTracksJobTest | 7 | YouTube track fetching job |
+| AnalyzeVinylJobTest | 5 | AI analysis job |
+| ArtistControllerTest | 3 | Artist CRUD |
+| ExampleTests | 3 | Basic sanity checks |
 
 ## 📁 Project Structure
 
@@ -335,11 +452,16 @@ backend/
 │   │   │   └── VinylScorerAgent.php    # AI Agent with tools
 │   │   └── Tools/
 │   │       └── VinylScorer.php          # Scoring algorithm
+│   ├── Console/
+│   │   └── Commands/
+│   │       ├── ImportDiscogsVinyls.php   # Import vinyls from Discogs
+│   │       └── RefreshVinylDetails.php   # Refresh tracklist & prices
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── RecordController.php
 │   │   │   ├── ArtistController.php
-│   │   │   ├── DiscogsController.php    # Search, filters, saved
+│   │   │   ├── DiscogsController.php     # Search, filters, saved
+│   │   │   ├── SearchController.php      # 🆕 Smart search & autocomplete
 │   │   │   ├── VinylScorerController.php # AI scoring, refresh, trending
 │   │   │   ├── QueueController.php       # Queue management API
 │   │   │   └── ...
@@ -354,6 +476,7 @@ backend/
 │   │   ├── Record.php
 │   │   ├── Artist.php
 │   │   ├── DiscogsAnalysis.php   # With scopes & helpers
+│   │   ├── SearchHistory.php     # 🆕 Search history tracking
 │   │   └── ...
 │   └── Services/
 │       ├── DiscogsService.php
@@ -369,9 +492,11 @@ backend/
 └── tests/
     ├── Unit/
     │   ├── DiscogsAnalysisTest.php
+    │   ├── SearchHistoryTest.php         # 🆕 Search history model tests
     │   ├── AnalyzeVinylJobTest.php
     │   └── FetchYouTubeTracksJobTest.php
     └── Feature/
+        ├── SearchControllerTest.php      # 🆕 Smart search tests
         ├── DiscogsControllerTest.php
         ├── VinylScorerControllerTest.php
         └── QueueControllerTest.php
@@ -442,6 +567,37 @@ $analysis->formatted_price; // "25.00 USD"
 $analysis->demand_status;   // "Very High Demand"
 $analysis->changes;         // Array of changes since last refresh
 $analysis->isTrending();    // Boolean
+```
+
+### SearchHistory
+
+Tracks user search history for autocomplete and analytics:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `session_id` | string | Session identifier |
+| `user_id` | integer | Optional user ID |
+| `query` | string | Search query |
+| `type` | string | Search type (general, genre, artist) |
+| `results_count` | integer | Number of results returned |
+| `filters` | json | Applied filters |
+| `selected_result` | json | User's clicked result |
+
+#### Model Scopes
+
+```php
+// Filter by session/user
+SearchHistory::bySession($sessionId)->get();
+SearchHistory::byUser($userId)->get();
+
+// Get unique queries
+SearchHistory::uniqueQueries()->limit(10)->get();
+
+// Get recent searches
+SearchHistory::recent(5)->get();
+
+// Get popular searches
+SearchHistory::getPopularSearches(10, 7); // top 10 in last 7 days
 ```
 
 ## 🛠️ Development

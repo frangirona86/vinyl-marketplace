@@ -11,6 +11,7 @@ import FiltersPanel from '@/components/ui/FiltersPanel.vue'
 import Pagination from '@/components/ui/Pagination.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import SmartSearchBar from '@/components/ui/SmartSearchBar.vue'
 
 const router = useRouter()
 const { initTheme } = useTheme()
@@ -31,7 +32,6 @@ const {
 } = useVinyls()
 
 const viewMode = ref('grid')
-const searchQuery = ref('')
 
 onMounted(async () => {
   initTheme()
@@ -44,12 +44,6 @@ const handleVinylClick = (vinyl) => {
 
 const handleFilterChange = (key, value) => {
   setFilter(key, value)
-}
-
-const handleSearch = () => {
-  if (searchQuery.value.trim()) {
-    router.push({ name: 'search', query: { q: searchQuery.value.trim() } })
-  }
 }
 
 const gridCols = computed(() => {
@@ -80,25 +74,9 @@ const gridCols = computed(() => {
             </h1>
           </router-link>
 
-          <!-- Search Bar (Desktop) -->
-          <div class="hidden md:flex flex-1 max-w-lg mx-6">
-            <div class="relative w-full">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search Discogs for new vinyls..."
-                class="w-full px-4 py-2.5 pl-10 bg-theme-surface border border-theme-light rounded-lg text-theme-primary text-sm placeholder:text-theme-muted focus:outline-none focus:border-accent-lilac transition-colors"
-                @keyup.enter="handleSearch"
-              >
-              <svg 
-                class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
+          <!-- Smart Search Bar (Desktop) -->
+          <div class="hidden md:flex flex-1 max-w-xl mx-6">
+            <SmartSearchBar placeholder="Search vinyls, artists, genres..." />
           </div>
 
           <!-- Right Actions -->
@@ -134,23 +112,7 @@ const gridCols = computed(() => {
 
         <!-- Mobile Search -->
         <div class="md:hidden mt-4">
-          <div class="relative">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search Discogs..."
-              class="w-full px-4 py-2.5 pl-10 bg-theme-surface border border-theme-light rounded-lg text-theme-primary text-sm placeholder:text-theme-muted focus:outline-none focus:border-accent-lilac transition-colors"
-              @keyup.enter="handleSearch"
-            >
-            <svg 
-              class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted"
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
+          <SmartSearchBar placeholder="Search vinyls, artists..." />
         </div>
       </div>
     </header>

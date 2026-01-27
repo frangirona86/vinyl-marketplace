@@ -80,21 +80,43 @@ const priceSuggestions = computed(() => {
   return vinyl.value?.price_suggestions || vinyl.value?.marketplace?.price_suggestions || null
 })
 
-// Get price range from price suggestions
+// Get price range from price suggestions or lowest_price
 const priceRange = computed(() => {
-  if (!priceSuggestions.value) return null
-  
-  const prices = Object.values(priceSuggestions.value)
-    .filter(p => p && p.value)
-    .map(p => p.value)
-  
-  if (prices.length === 0) return null
-  
-  return {
-    min: Math.min(...prices),
-    max: Math.max(...prices),
-    currency: Object.values(priceSuggestions.value)[0]?.currency || 'EUR'
+  // Try price_suggestions first
+  if (priceSuggestions.value) {
+    const prices = Object.values(priceSuggestions.value)
+      .filter(p => p && p.value)
+      .map(p => p.value)
+    
+    if (prices.length > 0) {
+      const min = Math.min(...prices)
+      const max = Math.max(...prices)
+      return {
+        min,
+        max,
+        hasRange: min !== max,
+        currency: Object.values(priceSuggestions.value)[0]?.currency || 'EUR'
+      }
+    }
   }
+  
+  // Fallback to lowest_price
+  const lowestPrice = vinyl.value?.lowest_price || vinyl.value?.marketplace?.stats?.lowest_price?.value
+  if (lowestPrice) {
+    return {
+      min: lowestPrice,
+      max: null,
+      hasRange: false,
+      currency: vinyl.value?.lowest_price_currency || 'EUR'
+    }
+  }
+  
+  return null
+})
+
+// Check if we have any price info
+const hasPriceInfo = computed(() => {
+  return priceRange.value !== null || vinyl.value?.lowest_price
 })
 
 // Find YouTube video for a track
@@ -258,26 +280,43 @@ const findYouTubeForTrack = (trackTitle) => {
           </div>
 
           <!-- Market Price Range (from Discogs) -->
-          <div v-if="priceRange" class="card-theme border rounded-xl p-6">
+          <div class="card-theme border rounded-xl p-6">
             <h3 class="font-display text-lg text-theme-primary mb-4 flex items-center gap-2">
               <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Market Price Range
+              Market Price
             </h3>
-            <div class="flex items-center justify-center gap-8">
+            
+            <!-- Has price range (min and max different) -->
+            <div v-if="priceRange?.hasRange" class="flex items-center justify-center gap-6">
               <div class="text-center">
+                <p class="text-sm text-theme-muted mb-1">From</p>
                 <p class="text-2xl font-bold text-green-500">{{ formatPrice(priceRange.min, priceRange.currency) }}</p>
-                <p class="text-sm text-theme-muted">Minimum</p>
               </div>
-              <div class="text-3xl text-theme-muted">→</div>
+              <div class="text-2xl text-theme-muted">→</div>
               <div class="text-center">
+                <p class="text-sm text-theme-muted mb-1">To</p>
                 <p class="text-2xl font-bold text-accent-coral">{{ formatPrice(priceRange.max, priceRange.currency) }}</p>
-                <p class="text-sm text-theme-muted">Maximum</p>
               </div>
             </div>
-            <p class="text-xs text-theme-muted text-center mt-4">
-              Based on Discogs marketplace data by condition
+            
+            <!-- Has only one price (from) -->
+            <div v-else-if="priceRange" class="text-center">
+              <p class="text-sm text-theme-muted mb-1">From</p>
+              <p class="text-3xl font-bold text-green-500">{{ formatPrice(priceRange.min, priceRange.currency) }}</p>
+            </div>
+            
+            <!-- No price info -->
+            <div v-else class="text-center py-4">
+              <svg class="w-12 h-12 mx-auto text-theme-muted/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" />
+              </svg>
+              <p class="text-theme-muted">No price information available</p>
+            </div>
+            
+            <p v-if="priceRange" class="text-xs text-theme-muted text-center mt-4">
+              Based on Discogs marketplace data
             </p>
           </div>
 
@@ -319,46 +358,59 @@ const findYouTubeForTrack = (trackTitle) => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
               </svg>
               Tracklist
+              <span class="text-sm font-normal text-theme-muted">({{ tracklist.length }} tracks)</span>
             </h3>
-            <div class="space-y-2">
-              <div 
-                v-for="(track, index) in tracklist" 
-                :key="index"
-                class="flex items-center gap-4 p-3 rounded-lg transition-colors"
-                :class="findYouTubeForTrack(track.title) ? 'bg-theme-surface hover:bg-theme-surface-hover cursor-pointer group' : 'bg-transparent'"
-                @click="findYouTubeForTrack(track.title) && playVideo(findYouTubeForTrack(track.title))"
-              >
-                <!-- Track Position -->
-                <span class="w-8 text-center text-theme-muted font-mono text-sm">
-                  {{ track.position || index + 1 }}
-                </span>
-                
-                <!-- Play button if YouTube available -->
-                <div v-if="findYouTubeForTrack(track.title)" class="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                  <svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                </div>
-                <!-- No video indicator -->
-                <div v-else class="w-10 h-10 rounded-full bg-theme-surface flex items-center justify-center flex-shrink-0">
-                  <svg class="w-5 h-5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-                  </svg>
-                </div>
-                
-                <!-- Track Info -->
-                <div class="flex-1 min-w-0">
-                  <p class="text-theme-primary font-medium truncate">{{ track.title }}</p>
-                  <p v-if="findYouTubeForTrack(track.title)" class="text-xs text-red-500">
-                    Click to play on YouTube
-                  </p>
+            <div class="space-y-1">
+              <!-- Track with YouTube video -->
+              <template v-for="(track, index) in tracklist" :key="index">
+                <div 
+                  v-if="findYouTubeForTrack(track.title)"
+                  class="flex items-center gap-4 p-3 rounded-lg bg-theme-surface hover:bg-theme-surface-hover cursor-pointer group transition-colors"
+                  @click="playVideo(findYouTubeForTrack(track.title))"
+                >
+                  <!-- Track Position -->
+                  <span class="w-8 text-center text-theme-muted font-mono text-sm">
+                    {{ track.position || index + 1 }}
+                  </span>
+                  
+                  <!-- Play button -->
+                  <div class="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                  
+                  <!-- Track Info -->
+                  <div class="flex-1 min-w-0">
+                    <p class="text-theme-primary font-medium truncate">{{ track.title }}</p>
+                    <p class="text-xs text-red-500">Click to play on YouTube</p>
+                  </div>
+                  
+                  <!-- Duration -->
+                  <span v-if="track.duration" class="text-sm text-theme-muted">
+                    {{ track.duration }}
+                  </span>
                 </div>
                 
-                <!-- Duration -->
-                <span v-if="track.duration" class="text-sm text-theme-muted">
-                  {{ track.duration }}
-                </span>
-              </div>
+                <!-- Track without YouTube video (simple display) -->
+                <div 
+                  v-else
+                  class="flex items-center gap-4 py-2 px-3 border-b border-theme-light/30 last:border-b-0"
+                >
+                  <!-- Track Position -->
+                  <span class="w-8 text-center text-theme-muted font-mono text-sm">
+                    {{ track.position || index + 1 }}
+                  </span>
+                  
+                  <!-- Track Title -->
+                  <p class="flex-1 text-theme-primary truncate">{{ track.title }}</p>
+                  
+                  <!-- Duration -->
+                  <span v-if="track.duration" class="text-sm text-theme-muted">
+                    {{ track.duration }}
+                  </span>
+                </div>
+              </template>
             </div>
           </div>
 
