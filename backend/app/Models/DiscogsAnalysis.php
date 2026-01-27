@@ -19,6 +19,7 @@ class DiscogsAnalysis extends Model
         "catalog_number",
         "genres",
         "styles",
+        "tracklist",
         "format",
         "have",
         "want",
@@ -54,6 +55,7 @@ class DiscogsAnalysis extends Model
     protected $casts = [
         "genres" => "array",
         "styles" => "array",
+        "tracklist" => "array",
         "price_suggestions" => "array",
         "youtube_tracks" => "array",
         "raw_data" => "array",

@@ -282,6 +282,7 @@ class ImportDiscogsVinyls extends Command
                     'catalog_number' => $release['catalog_number'],
                     'genres' => $release['genres'],
                     'styles' => $release['styles'] ?? [],
+                    'tracklist' => $release['tracklist'] ?? [],
                     'format' => $release['formats'][0]['name'] ?? null,
                     'have' => $community['have'] ?? 0,
                     'want' => $community['want'] ?? 0,
