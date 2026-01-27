@@ -241,7 +241,7 @@ npm run test:run
 npm run test:coverage
 ```
 
-### Test Coverage (66 tests)
+### Test Coverage (91 tests)
 
 - **VinylCard** (18 tests): Rendering, badges, colors, events, YouTube indicator
 - **Pagination** (14 tests): Navigation, disabled states
@@ -249,6 +249,7 @@ npm run test:coverage
 - **ThemeToggle** (7 tests): Icons, toggle functionality
 - **useTheme** (8 tests): Persistence, toggle
 - **useVinyls** (10 tests): Filters, fetch, error handling
+- **useSearch** (25 tests): Suggestions, history, keyboard navigation, selection
 
 ## Development
 

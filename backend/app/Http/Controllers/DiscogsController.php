@@ -500,9 +500,8 @@ class DiscogsController extends Controller
         $sortDir = $request->input("dir", "desc");
         $query->orderBy($sortBy, $sortDir);
 
-        return response()->json([
-            "data" => $query->paginate($request->input("per_page", 20)),
-        ]);
+        // Return paginated data directly (not wrapped in extra "data" key)
+        return response()->json($query->paginate($request->input("per_page", 20)));
     }
 
     /**

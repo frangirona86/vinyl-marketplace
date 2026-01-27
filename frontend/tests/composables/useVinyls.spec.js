@@ -78,16 +78,15 @@ describe('useVinyls', () => {
   })
 
   it('should fetch vinyls and update state', async () => {
+    // Mock response matches the actual API response format (pagination directly, not wrapped)
     const mockResponse = {
-      data: {
-        data: [
-          { id: 1, title: 'Test Vinyl', artist_name: 'Test Artist' }
-        ],
-        current_page: 1,
-        last_page: 1,
-        per_page: 20,
-        total: 1,
-      }
+      data: [
+        { id: 1, title: 'Test Vinyl', artist_name: 'Test Artist' }
+      ],
+      current_page: 1,
+      last_page: 1,
+      per_page: 20,
+      total: 1,
     }
 
     discogsApi.getSaved.mockResolvedValue(mockResponse)

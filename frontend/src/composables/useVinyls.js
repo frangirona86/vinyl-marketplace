@@ -70,11 +70,12 @@ export function useVinyls() {
       const params = buildParams()
       const response = await discogsApi.getSaved(params)
       
-      vinyls.value = response.data.data || []
-      pagination.currentPage = response.data.current_page
-      pagination.lastPage = response.data.last_page
-      pagination.perPage = response.data.per_page
-      pagination.total = response.data.total
+      // response is already the JSON from backend (not wrapped in axios response)
+      vinyls.value = response.data || []
+      pagination.currentPage = response.current_page
+      pagination.lastPage = response.last_page
+      pagination.perPage = response.per_page
+      pagination.total = response.total
     } catch (err) {
       error.value = err.response?.data?.message || 'Error loading vinyls'
       vinyls.value = []

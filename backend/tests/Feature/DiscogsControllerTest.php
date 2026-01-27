@@ -258,13 +258,15 @@ class DiscogsControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                "data" => [
-                    "data",
-                    "current_page",
-                    "per_page",
-                    "total",
-                ],
+                "data",
+                "current_page",
+                "per_page",
+                "total",
+                "last_page",
             ]);
+        
+        $this->assertCount(20, $response->json('data')); // Default per_page is 20
+        $this->assertEquals(25, $response->json('total'));
     }
 
     public function test_remove_saved_deletes_analysis(): void
