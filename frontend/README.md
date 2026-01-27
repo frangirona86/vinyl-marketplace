@@ -192,6 +192,16 @@ server: {
 | `POST /api/discogs/releases/:id/save` | Save vinyl |
 | `DELETE /api/discogs/saved/:id` | Delete saved vinyl |
 
+### Queue API (Background Processing)
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/queue/analyze/:id` | Queue AI analysis |
+| `POST /api/queue/analyze-batch` | Queue batch analysis |
+| `POST /api/queue/youtube/:id` | Queue YouTube fetch |
+| `POST /api/queue/import` | Queue Discogs import |
+| `GET /api/queue/stats` | Get queue statistics |
+
 ## Testing
 
 ```bash

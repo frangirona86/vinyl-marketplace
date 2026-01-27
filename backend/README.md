@@ -133,6 +133,44 @@ curl "http://localhost:8080/api/discogs/filters"
 }
 ```
 
+### 🔄 Queue System (Redis)
+
+Asynchronous job processing for heavy tasks. Uses Redis as queue driver with rate limiting.
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/queue/analyze/{id}` | Queue AI analysis for a vinyl |
+| `POST /api/queue/analyze-batch` | Queue batch analysis (limit, include_youtube) |
+| `POST /api/queue/youtube/{id}` | Queue YouTube track fetch |
+| `POST /api/queue/import` | Queue Discogs import (discogs_id, analyze, youtube) |
+| `GET /api/queue/stats` | Get queue statistics |
+
+#### Queue Configuration
+
+```env
+QUEUE_CONNECTION=redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
+
+#### Running Queue Workers
+
+```bash
+# Single worker (all queues)
+php artisan queue:work --queue=ai,youtube,discogs,default
+
+# Or use the provided script
+./scripts/run-workers.sh
+```
+
+#### Rate Limits
+
+| API | Limit |
+|-----|-------|
+| Discogs | 60 requests/minute |
+| OpenAI | 30 requests/minute |
+| YouTube | 100 requests/day |
+
 ### 🤖 AI Vinyl Scorer Agent
 
 AI-powered investment analysis for vinyl records using [Neuron AI](https://www.neuron-ai.dev/).
@@ -278,12 +316,14 @@ docker exec vinyl_app php artisan test --filter=DiscogsAnalysisTest
 ```
 
 **Test Coverage:**
-- 52 tests, 159 assertions
+- 92 tests, 276 assertions
 - DiscogsAnalysis model scopes & attributes
 - Search smart with insights
 - Filters endpoint
 - Vinyl scorer (quick, batch, analyze)
 - Refresh & trending detection
+- Queue controller (analyze, batch, youtube, import)
+- Job tests (AnalyzeVinylJob, FetchYouTubeTracksJob)
 
 ## 📁 Project Structure
 
@@ -301,27 +341,40 @@ backend/
 │   │   │   ├── ArtistController.php
 │   │   │   ├── DiscogsController.php    # Search, filters, saved
 │   │   │   ├── VinylScorerController.php # AI scoring, refresh, trending
+│   │   │   ├── QueueController.php       # Queue management API
 │   │   │   └── ...
 │   │   ├── Requests/        # Form Request validation
 │   │   └── Resources/       # API Resources (JSON transformation)
+│   ├── Jobs/
+│   │   ├── AnalyzeVinylJob.php           # AI analysis job
+│   │   ├── FetchYouTubeTracksJob.php     # YouTube fetch job
+│   │   ├── ImportVinylFromDiscogsJob.php # Discogs import job
+│   │   └── BatchAnalyzeVinylsJob.php     # Batch processing job
 │   ├── Models/
 │   │   ├── Record.php
 │   │   ├── Artist.php
 │   │   ├── DiscogsAnalysis.php   # With scopes & helpers
 │   │   └── ...
 │   └── Services/
-│       └── DiscogsService.php
+│       ├── DiscogsService.php
+│       └── YouTubeService.php    # YouTube API integration
 ├── database/
 │   ├── factories/
+│   │   └── DiscogsAnalysisFactory.php
 │   └── migrations/
 ├── routes/
 │   └── api.php
+├── scripts/
+│   └── run-workers.sh            # Queue workers script
 └── tests/
     ├── Unit/
-    │   └── DiscogsAnalysisTest.php
+    │   ├── DiscogsAnalysisTest.php
+    │   ├── AnalyzeVinylJobTest.php
+    │   └── FetchYouTubeTracksJobTest.php
     └── Feature/
         ├── DiscogsControllerTest.php
-        └── VinylScorerControllerTest.php
+        ├── VinylScorerControllerTest.php
+        └── QueueControllerTest.php
 ```
 
 ## 📊 Data Models

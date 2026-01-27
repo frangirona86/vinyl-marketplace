@@ -41,14 +41,23 @@ Route::prefix("discogs")->group(function () {
     // Artist details
     Route::get("/artists/{id}", [DiscogsController::class, "getArtist"]);
     
-    // Saved analyses
+    // Saved analyses (specific routes must come before {id} routes)
     Route::get("/saved", [DiscogsController::class, "getSaved"]);
-    Route::get("/saved/{id}", [DiscogsController::class, "getSavedById"]);
     Route::get("/saved/stats", [DiscogsController::class, "getSavedStats"]);
-    Route::delete("/saved/{id}", [DiscogsController::class, "removeSaved"]);
+    Route::get("/saved/{id}", [DiscogsController::class, "getSavedById"])->whereNumber('id');
+    Route::delete("/saved/{id}", [DiscogsController::class, "removeSaved"])->whereNumber('id');
     
     // Filters for frontend (genres, styles, countries, etc.)
     Route::get("/filters", [DiscogsController::class, "getFilters"]);
+});
+
+// Queue Management
+Route::prefix("queue")->group(function () {
+    Route::post("/analyze/{id}", [\App\Http\Controllers\QueueController::class, "analyzeVinyl"]);
+    Route::post("/analyze-batch", [\App\Http\Controllers\QueueController::class, "analyzeBatch"]);
+    Route::post("/youtube/{id}", [\App\Http\Controllers\QueueController::class, "fetchYouTube"]);
+    Route::post("/import", [\App\Http\Controllers\QueueController::class, "importFromDiscogs"]);
+    Route::get("/stats", [\App\Http\Controllers\QueueController::class, "stats"]);
 });
 
 // Vinyl Scorer AI Agent

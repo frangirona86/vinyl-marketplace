@@ -1,4 +1,5 @@
 services:
+  # Laravel Backend (PHP-FPM)
   app:
     build:
       context: ../backend
@@ -7,12 +8,29 @@ services:
     working_dir: /var/www/html
     volumes:
       - ../backend:/var/www/html
+      - /var/www/html/vendor  # Preserve vendor from container
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=vinyl_db
+      - DB_USERNAME=vinyl_user
+      - DB_PASSWORD=vinyl_pass
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - vinyl_network
 
+  # Nginx Web Server
   nginx:
-    image: nginx:stable
+    image: nginx:stable-alpine
     container_name: vinyl_nginx
     ports:
       - "8080:80"
@@ -21,9 +39,12 @@ services:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - app
+    networks:
+      - vinyl_network
 
+  # PostgreSQL Database
   postgres:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: vinyl_postgres
     environment:
       POSTGRES_DB: vinyl_db
@@ -33,12 +54,48 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vinyl_user -d vinyl_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vinyl_network
 
+  # Redis Cache
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: vinyl_redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - vinyl_network
+
+  # Vue.js Frontend (Development)
+  frontend:
+    image: node:20-alpine
+    container_name: vinyl_frontend
+    working_dir: /app
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules  # Preserve node_modules from container
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - nginx
+    networks:
+      - vinyl_network
+
+networks:
+  vinyl_network:
+    driver: bridge
 
 volumes:
   postgres_data:
+  redis_data:
